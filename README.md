@@ -1,10 +1,10 @@
-#Scaleway Function for Kapsule and Database interactions
+# Scaleway Function for Kapsule and Database interactions
 
 This is a Scaleway Function in Golang that sets automatically your Scaleway database's security group in order to allow your Kapsule nodes' IP addresses.
 
 It is important to note that this function as it is, will overwrite your existing security groups.
 
-##How to use it
+## How to use it
 1. Clone the repository:
 2. Compress the content:
 
