@@ -1,17 +1,16 @@
-package main
+package kapsule_database_interactions
 
 import (
 	"fmt"
-	"github.com/scaleway/scaleway-functions-go/events"
-	"github.com/scaleway/scaleway-functions-go/lambda"
 	"github.com/scaleway/scaleway-sdk-go/api/k8s/v1"
 	"github.com/scaleway/scaleway-sdk-go/api/rdb/v1"
 	"github.com/scaleway/scaleway-sdk-go/scw"
 	"net"
+	"net/http"
 	"os"
 )
 
-func Handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+func Handle(w http.ResponseWriter, r *http.Request) {
 
 	orgaId := os.Getenv("ORGANIZATION_ID")
 	accessKey := os.Getenv("ACCESS_KEY")
@@ -27,7 +26,12 @@ func Handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse,
 		scw.WithAuth(accessKey, secretKey),
 	)
 	if err != nil {
-		return events.APIGatewayProxyResponse{}, err
+		w.WriteHeader(http.StatusUnauthorized)
+		_, err := fmt.Fprint(w, err.Error())
+		if err != nil {
+			return
+		}
+		return
 	}
 
 	k8sApi := k8s.NewAPI(client)
@@ -40,7 +44,12 @@ func Handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse,
 	respNode, err := k8sApi.ListNodes(&reqListNodes)
 
 	if err != nil {
-		return events.APIGatewayProxyResponse{}, err
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err := fmt.Fprint(w, err.Error())
+		if err != nil {
+			return
+		}
+		return
 	}
 	var IPList []net.IP
 	for _, node := range respNode.Nodes {
@@ -64,14 +73,13 @@ func Handler(req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse,
 	}
 	_, err = dbApi.SetInstanceACLRules(req1)
 	if err != nil {
-		return events.APIGatewayProxyResponse{}, err
+		w.WriteHeader(http.StatusInternalServerError)
+		_, err := fmt.Fprint(w, err.Error())
+		if err != nil {
+			return
+		}
+		return
 	}
-	return events.APIGatewayProxyResponse{
-		Body:       fmt.Sprintf("Your nodes' IP addresses have been added to your database's allow list "),
-		StatusCode: 200,
-	}, nil
-}
-
-func main() {
-	lambda.Start(Handler)
+	w.Header().Set("Content-Type", "application/json")
+	fmt.Fprint(w, string("done"))
 }
